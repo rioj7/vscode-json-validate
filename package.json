@@ -1,0 +1,43 @@
+{
+  "name": "vscode-json-validate",
+  "displayName": "JSON Validate",
+  "description": "Validate JSON when part of  other files as strings.",
+  "publisher": "rioj7",
+  "license": "MIT",
+  "version": "1.0.0",
+  "engines": {"vscode": "^1.50.0"},
+  "categories": ["Other"],
+  "keywords": [ "json", "validate" ],
+  "icon": "images/icon.png",
+  "galleryBanner": {"color": "#000080", "theme": "dark"},
+  "activationEvents": [
+    "onCommand:jsonvalidate.validate"
+  ],
+  "main": "./vscode-json-validate.js",
+  "browser": "./vscode-json-validate.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "jsonvalidate.validate",
+        "title": "Validate JSON",
+        "category": "JSON"
+      }
+    ],
+    "menus": {
+      "editor/context": [
+        {
+          "command": "jsonvalidate.validate",
+          "group": "json"
+        }
+      ]
+    }
+  },
+  "homepage": "https://github.com/rioj7/vscode-json-validate",
+  "bugs": {
+    "url": "https://github.com/rioj7/vscode-json-validate/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/rioj7/vscode-json-validate.git"
+  }
+}
