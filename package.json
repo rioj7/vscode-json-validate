@@ -4,14 +4,15 @@
   "description": "Validate JSON when part of  other files as strings.",
   "publisher": "rioj7",
   "license": "MIT",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "engines": {"vscode": "^1.50.0"},
   "categories": ["Other"],
   "keywords": [ "json", "validate" ],
   "icon": "images/icon.png",
   "galleryBanner": {"color": "#000080", "theme": "dark"},
   "activationEvents": [
-    "onCommand:jsonvalidate.validate"
+    "onCommand:jsonvalidate.validate",
+    "onCommand:jsonvalidate.validateWithComments"
   ],
   "main": "./vscode-json-validate.js",
   "browser": "./vscode-json-validate.js",
@@ -21,12 +22,21 @@
         "command": "jsonvalidate.validate",
         "title": "Validate JSON",
         "category": "JSON"
+      },
+      {
+        "command": "jsonvalidate.validateWithComments",
+        "title": "Validate JSON with Comments",
+        "category": "JSON"
       }
     ],
     "menus": {
       "editor/context": [
         {
           "command": "jsonvalidate.validate",
+          "group": "json"
+        },
+        {
+          "command": "jsonvalidate.validateWithComments",
           "group": "json"
         }
       ]

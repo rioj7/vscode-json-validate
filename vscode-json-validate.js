@@ -3,6 +3,7 @@ const vscode = require('vscode');
 // Uses parse.js from the node-module json-bigint
 // included here in the code because the browser version does not allow require (only one file to pack)
 // code modified for validation only in Visual Studio Code
+// add the ability to parse 'JSON with Comments' option
 
 // json_parse.js START =============================================================================
 /*
@@ -20,9 +21,10 @@ var json_parse = function () {
       "strict": true,       // generate syntax errors for "duplicate key"
       "storeAsString": true // values should be stored as BigNumber or a string
   };
-  var at,     // The index of the current character
+  var at,     // The index of the next character
       ch,     // The current character
       atLine = 1, // The current line
+      allowComments = false,
       escapee = {
           '"':  '"',
           '\\': '\\',
@@ -120,8 +122,17 @@ var json_parse = function () {
           error("Bad string");
       },
       white = function () { // Skip whitespace.
-          while (ch && ch <= ' ') {
-              next();
+          while (ch) {
+              if (ch <= ' ') {
+                  next();
+                  continue;
+              }
+              if (!allowComments) { break; }
+              if (!(ch === '/' && text.charAt(at) === '/')) { break; }
+              let curLine = atLine;
+              while (ch && curLine === atLine) {
+                  next();
+              }
           }
       },
 
@@ -220,12 +231,13 @@ var json_parse = function () {
           return ch >= '0' && ch <= '9' ? number() : word();
       }
   };
-  return function (source, lineOffset) {
+  return function (source, lineOffset, _allowComments) {
       var result;
       text = source;
       at = 0;
       ch = ' ';
       atLine = lineOffset;
+      allowComments = _allowComments;
       result = value();
       white();
       if (ch) {
@@ -239,10 +251,10 @@ var json_parse = function () {
 
 let jsonParse = json_parse(); // no options and no reviver
 
-function validateJSONAtLine(text, lineOffset) {
+function validateJSONAtLine(text, lineOffset, allowComments) {
   let lineMsg = 'Goto line: ';
   try {
-    jsonParse(text, lineOffset);
+    jsonParse(text, lineOffset, allowComments);
   }
   catch (e) {
     vscode.window.showErrorMessage(`JSON ${e.name} at line ${e.at}: ${e.message}`, { title: `${lineMsg}${e.at}` } )
@@ -259,20 +271,21 @@ function validateJSONAtLine(text, lineOffset) {
 }
 
 /** @param {vscode.TextEditor} editor */
-function validateJSON(editor, edit, args) {
+function validateJSON(editor, edit, args, allowComments) {
   if (editor.selection.isEmpty) {
-    validateJSONAtLine(editor.document.getText(), 1);
+    validateJSONAtLine(editor.document.getText(), 1, allowComments);
   }
   else {
     for (const selection of editor.selections) {
       if (selection.isEmpty) { continue; }
-      validateJSONAtLine(editor.document.getText(selection), selection.start.line + 1);
+      validateJSONAtLine(editor.document.getText(selection), selection.start.line + 1, allowComments);
     }
   }
 }
 
 function activate(context) {
   context.subscriptions.push(vscode.commands.registerTextEditorCommand('jsonvalidate.validate', validateJSON));
+  context.subscriptions.push(vscode.commands.registerTextEditorCommand('jsonvalidate.validateWithComments', (editor, edit, args) => validateJSON(editor, edit, args, true)));
 }
 
 function deactivate() { }
