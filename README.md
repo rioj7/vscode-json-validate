@@ -12,5 +12,6 @@ If nothing is selected the whole file is validated.
 
 ### 1.1.0
 * validate JSON with Comments
+* show character position in error message and move cursor there
 
 ### 1.0.0 Initial release

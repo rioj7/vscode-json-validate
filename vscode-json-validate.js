@@ -23,7 +23,8 @@ var json_parse = function () {
   };
   var at,     // The index of the next character
       ch,     // The current character
-      atLine = 1, // The current line
+      atLine = 1, // The current line position
+      atChar = 1, // The current character position in total text
       allowComments = false,
       escapee = {
           '"':  '"',
@@ -41,7 +42,8 @@ var json_parse = function () {
           throw {
               name:    'SyntaxError',
               message: m,
-              at:      atLine
+              atLine,
+              atChar
           };
       },
 
@@ -50,8 +52,9 @@ var json_parse = function () {
               error("Expected '" + c + "' instead of '" + ch + "'");
           }
           // Get the next character. When there are no more characters, return the empty string.
+          atChar += 1;  // \r will never be flagged as error
           ch = text.charAt(at);
-          if (ch === '\n') { atLine += 1; }
+          if (ch === '\n') { atLine += 1; atChar = -1; }
           at += 1;
           return ch;
       },
@@ -231,12 +234,13 @@ var json_parse = function () {
           return ch >= '0' && ch <= '9' ? number() : word();
       }
   };
-  return function (source, lineOffset, _allowComments) {
+  return function (source, lineOffset, charOffset, _allowComments) {
       var result;
       text = source;
       at = 0;
       ch = ' ';
       atLine = lineOffset;
+      atChar = charOffset-1; // we start with a ' ' in ch, first next reads first char
       allowComments = _allowComments;
       result = value();
       white();
@@ -251,20 +255,21 @@ var json_parse = function () {
 
 let jsonParse = json_parse(); // no options and no reviver
 
-function validateJSONAtLine(text, lineOffset, allowComments) {
+/** @param {string} text @param {vscode.Position} startPosition @param {boolean} allowComments */
+function validateJSONAtLine(text, startPosition, allowComments) {
   let lineMsg = 'Goto line: ';
   try {
-    jsonParse(text, lineOffset, allowComments);
+    jsonParse(text, startPosition.line, startPosition.character, allowComments);
   }
   catch (e) {
-    vscode.window.showErrorMessage(`JSON ${e.name} at line ${e.at}: ${e.message}`, { title: `${lineMsg}${e.at}` } )
+    vscode.window.showErrorMessage(`JSON ${e.name} at line ${e.atLine+1}:${e.atChar+1} : ${e.message}`, { title: `${lineMsg}${e.atLine+1}:${e.atChar+1}` } )
     .then(e => {
       if (!e) { return; }
       if (e.title.startsWith(lineMsg)) {
         let editor = vscode.window.activeTextEditor;
         if (!editor) { return; }
-        let line = Number(e.title.substring(lineMsg.length));
-        editor.selections = [ new vscode.Selection(line-1,0,line-1,0) ];
+        let [line,char] = e.title.substring(lineMsg.length).split(':').map(Number);
+        editor.selections = [ new vscode.Selection(line-1,char-1,line-1,char-1) ];
       }
     });
   }
@@ -273,12 +278,12 @@ function validateJSONAtLine(text, lineOffset, allowComments) {
 /** @param {vscode.TextEditor} editor */
 function validateJSON(editor, edit, args, allowComments) {
   if (editor.selection.isEmpty) {
-    validateJSONAtLine(editor.document.getText(), 1, allowComments);
+    validateJSONAtLine(editor.document.getText(), new vscode.Position(0,0), allowComments);
   }
   else {
     for (const selection of editor.selections) {
       if (selection.isEmpty) { continue; }
-      validateJSONAtLine(editor.document.getText(selection), selection.start.line + 1, allowComments);
+      validateJSONAtLine(editor.document.getText(selection), selection.start, allowComments);
     }
   }
 }
