@@ -14,6 +14,7 @@ const vscode = require('vscode');
 
     NO WARRANTY EXPRESSED OR IMPLIED. USE AT YOUR OWN RISK.
 */
+var placeCursorAfterPreviousChar = true;
 
 var json_parse = function () {
   "use strict";
@@ -25,7 +26,10 @@ var json_parse = function () {
       ch,     // The current character
       atLine = 1, // The current line position
       atChar = 1, // The current character position in total text
+      atLinePrevious,  // The previous non white space/comment character
+      atCharPrevious,
       allowComments = false,
+      insideComment = false,
       escapee = {
           '"':  '"',
           '\\': '\\',
@@ -49,7 +53,15 @@ var json_parse = function () {
 
       next = function (c) { // If a c parameter is provided, verify that it matches the current character.
           if (c && c !== ch) {
+              if ((c === ',' || c === ':') && placeCursorAfterPreviousChar) {
+                  atLine = atLinePrevious;
+                  atChar = atCharPrevious+1;
+              }
               error("Expected '" + c + "' instead of '" + ch + "'");
+          }
+          if (!insideComment && (ch > ' ')) {
+              atLinePrevious = atLine;
+              atCharPrevious = atChar;
           }
           // Get the next character. When there are no more characters, return the empty string.
           atChar += 1;  // \r will never be flagged as error
@@ -132,10 +144,12 @@ var json_parse = function () {
               }
               if (!allowComments) { break; }
               if (!(ch === '/' && text.charAt(at) === '/')) { break; }
+              insideComment = true;
               let curLine = atLine;
               while (ch && curLine === atLine) {
                   next();
               }
+              insideComment = false;
           }
       },
 
@@ -242,6 +256,7 @@ var json_parse = function () {
       atLine = lineOffset;
       atChar = charOffset-1; // we start with a ' ' in ch, first next reads first char
       allowComments = _allowComments;
+      insideComment = false;
       result = value();
       white();
       if (ch) {
@@ -289,8 +304,19 @@ function validateJSON(editor, edit, args, allowComments) {
 }
 
 function activate(context) {
+  let extensionShortName = 'jsonvalidate';
+  function updateConfiguration() {
+    let config = vscode.workspace.getConfiguration(extensionShortName);
+    placeCursorAfterPreviousChar = config.get('placeCursorAfterPreviousChar');
+  }
   context.subscriptions.push(vscode.commands.registerTextEditorCommand('jsonvalidate.validate', validateJSON));
   context.subscriptions.push(vscode.commands.registerTextEditorCommand('jsonvalidate.validateWithComments', (editor, edit, args) => validateJSON(editor, edit, args, true)));
+  context.subscriptions.push(vscode.workspace.onDidChangeConfiguration( async configevent => {
+    if (configevent.affectsConfiguration(extensionShortName)) {
+      updateConfiguration();
+    }
+  }));
+  updateConfiguration();
 }
 
 function deactivate() { }

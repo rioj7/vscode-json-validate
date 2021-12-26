@@ -6,7 +6,13 @@ When you have in your source code a string that is a JSON object after parsing. 
 1. Select from the Command Palette or the editor context menu: **Validate JSON** or **Validate JSON with Comments**
 1. Each selection is parsed and if an error is found you get a warning message with the possibility to go to the line with the error.
 
+Only the **first error** in each selection is shown. Repeat the check until you don't get any error.
+
 If nothing is selected the whole file is validated.
+
+# Configuration
+
+* `jsonvalidate.placeCursorAfterPreviousChar` : When the next character expected is a `,` or `:` use the location after the previous non whitespace character. Comments are considered whitespace. (default: `true`)
 
 ## Release Notes
 

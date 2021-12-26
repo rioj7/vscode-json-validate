@@ -4,12 +4,12 @@
   "description": "Validate JSON when part of  other files as strings.",
   "publisher": "rioj7",
   "license": "MIT",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "engines": {"vscode": "^1.50.0"},
   "categories": ["Other"],
   "keywords": [ "json", "validate" ],
   "icon": "images/icon.png",
-  "galleryBanner": {"color": "#000080", "theme": "dark"},
+  "galleryBanner": {"color": "#f0f0f0", "theme": "light"},
   "activationEvents": [
     "onCommand:jsonvalidate.validate",
     "onCommand:jsonvalidate.validateWithComments"
@@ -40,6 +40,17 @@
           "group": "json"
         }
       ]
+    },
+    "configuration": {
+      "title": "JSON Validate",
+      "properties": {
+        "jsonvalidate.placeCursorAfterPreviousChar": {
+          "type": "boolean",
+          "default": true,
+          "scope": "resource",
+          "description": "When expecting a ',' or ':' place cursor after previous character in error message."
+        }
+      }
     }
   },
   "homepage": "https://github.com/rioj7/vscode-json-validate",
