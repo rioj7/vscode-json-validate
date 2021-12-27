@@ -15,6 +15,8 @@ const vscode = require('vscode');
     NO WARRANTY EXPRESSED OR IMPLIED. USE AT YOUR OWN RISK.
 */
 var placeCursorAfterPreviousChar = true;
+var errorsInProblemPane = true;
+var errorsByMessages = true;
 
 var json_parse = function () {
   "use strict";
@@ -269,6 +271,9 @@ var json_parse = function () {
 
 
 let jsonParse = json_parse(); // no options and no reviver
+/** @type {vscode.DiagnosticCollection} */
+let diagnosticsCollection;
+let diagnostics = [];
 
 /** @param {string} text @param {vscode.Position} startPosition @param {boolean} allowComments */
 function validateJSONAtLine(text, startPosition, allowComments) {
@@ -277,6 +282,17 @@ function validateJSONAtLine(text, startPosition, allowComments) {
     jsonParse(text, startPosition.line, startPosition.character, allowComments);
   }
   catch (e) {
+    if (errorsInProblemPane) {
+      let pos = new vscode.Position(e.atLine, e.atChar);
+      diagnostics.push({
+        code: '',
+        message: e.message,
+        range: new vscode.Range(pos, pos),
+        severity: vscode.DiagnosticSeverity.Error,
+        source: 'JSON Validate',
+      });
+    }
+    if (!errorsByMessages) { return; }
     vscode.window.showErrorMessage(`JSON ${e.name} at line ${e.atLine+1}:${e.atChar+1} : ${e.message}`, { title: `${lineMsg}${e.atLine+1}:${e.atChar+1}` } )
     .then(e => {
       if (!e) { return; }
@@ -292,6 +308,8 @@ function validateJSONAtLine(text, startPosition, allowComments) {
 
 /** @param {vscode.TextEditor} editor */
 function validateJSON(editor, edit, args, allowComments) {
+  if (!editor) { return; }
+  diagnostics = [];
   if (editor.selection.isEmpty) {
     validateJSONAtLine(editor.document.getText(), new vscode.Position(0,0), allowComments);
   }
@@ -301,13 +319,17 @@ function validateJSON(editor, edit, args, allowComments) {
       validateJSONAtLine(editor.document.getText(selection), selection.start, allowComments);
     }
   }
+  diagnosticsCollection.set(editor.document.uri, diagnostics.length === 0 ? undefined : diagnostics);
 }
 
 function activate(context) {
   let extensionShortName = 'jsonvalidate';
+  diagnosticsCollection = vscode.languages.createDiagnosticCollection(extensionShortName);
   function updateConfiguration() {
     let config = vscode.workspace.getConfiguration(extensionShortName);
     placeCursorAfterPreviousChar = config.get('placeCursorAfterPreviousChar');
+    errorsInProblemPane = config.get('errorsInProblemPane');
+    errorsByMessages = config.get('errorsByMessages');
   }
   context.subscriptions.push(vscode.commands.registerTextEditorCommand('jsonvalidate.validate', validateJSON));
   context.subscriptions.push(vscode.commands.registerTextEditorCommand('jsonvalidate.validateWithComments', (editor, edit, args) => validateJSON(editor, edit, args, true)));

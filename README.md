@@ -10,11 +10,22 @@ Only the **first error** in each selection is shown. Repeat the check until you 
 
 If nothing is selected the whole file is validated.
 
+The errors shown in the PROBLEMS panel will not be removed when you fix the problem, the validator does work at the background (it does not know the syntax of your file). You have to validate the region again.
+
 # Configuration
 
 * `jsonvalidate.placeCursorAfterPreviousChar` : When the next character expected is a `,` or `:` use the location after the previous non whitespace character. Comments are considered whitespace. (default: `true`)
+* `jsonvalidate.errorsInProblemPane` : Report an error in the PROBLEMS pane (red squiggles). (default: `true`)
+* `jsonvalidate.errorsByMessages` : Report an error with a Warning message. (default: `true`)
 
 ## Release Notes
+
+### 1.3.0
+* `jsonvalidate.errorsInProblemPane`
+* `jsonvalidate.errorsByMessages`
+
+### 1.2.0
+* Place cursor after previous character for , and : - Can be changed by setting.
 
 ### 1.1.0
 * validate JSON with Comments
