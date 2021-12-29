@@ -17,8 +17,67 @@ The errors shown in the PROBLEMS panel will not be removed when you fix the prob
 * `jsonvalidate.placeCursorAfterPreviousChar` : When the next character expected is a `,` or `:` use the location after the previous non whitespace character. Comments are considered whitespace. (default: `true`)
 * `jsonvalidate.errorsInProblemPane` : Report an error in the PROBLEMS pane (red squiggles). (default: `true`)
 * `jsonvalidate.errorsByMessages` : Report an error with a Warning message. (default: `true`)
+* `jsonvalidate.blocks` : Define [blocks](#blocks) of the file to validate automatically.
+
+# Blocks
+
+If the part of the file that contains the JSON text has a known begin and end you can have that block validated automatically. The PROBLEMS panel will be updated. If you have the messages enabled you might get a lot of them.
+
+The definition of a block is done in the configuration variable `jsonvalidate.blocks`. It is an object with:
+
+* the key for the block can have any name, it can be used to override a definition.
+* the properties for each block are
+    * `flags`: a string with the regex flags "i" and/or "m" (default: "")
+    * `beforeStart`: regular expression to search for the block start
+    * `afterEnd`: regular expression to search for after the block start
+    * `filterLanguageID`: (Optional) search for blocks in this file if LanguageID matches this regular expression (case insensitive) (default: undefined)
+    * `filterFilePath`: (Optional) search for blocks in this file if the file path matches this regular expression (case insensitive) (default: undefined)
+    * `allowComments`: (Optional) are comments allowed in this block (default: `false`)
+
+If a `filter` property is not defined it will pass all files.
+
+If a block is found, a different block is searched for in the rest of the file.
+
+## Example
+
+If you end the name of a variable with `JSON` you can define a block to validate.
+
+```
+  "jsonvalidate.blocks": {
+    "Python String": {
+      "beforeStart": "\\w+JSON\\s*=\\s*(\"\"\"|''')",
+      "afterEnd": "(\"\"\"|''')",
+      "filterFilePath": "\\.py$"
+    },
+    "JavaScript String": {
+      "beforeStart": "\\w+JSON\\s*=\\s*`",
+      "afterEnd": `",
+      "filterLanguageID": "javascript"
+    }
+```
+
+In JavaScript we use the backtick (template strings).
+
+## Build in definition
+The extension has a build in block definition (that can be overridden).
+
+The [Liquid template](https://shopify.github.io/liquid/) definition can contain [schema](https://shopify.dev/themes/architecture/sections/section-schema) information between specific tags.
+
+```
+    "Liquid schema": {
+      "beforeStart": "\\{%\\s*schema\\s*%\\}",
+      "afterEnd": "\\{%\\s*endschema\\s*%\\}",
+      "filterLanguageID": "liquid"
+    }
+```
+
+You change this definition by using a name with the same key: `"Liquid schema"`
 
 ## Release Notes
+
+### 1.4.0
+* `jsonvalidate.blocks` validate automatically parts of the file
+* `jsonvalidate.errorsInProblemPane` rename to `jsonvalidate.errorsInProblemsPanel`
 
 ### 1.3.0
 * `jsonvalidate.errorsInProblemPane`

@@ -4,16 +4,13 @@
   "description": "Validate JSON when part of  other files as strings.",
   "publisher": "rioj7",
   "license": "MIT",
-  "version": "1.3.0",
+  "version": "1.4.0",
   "engines": {"vscode": "^1.50.0"},
   "categories": ["Other"],
-  "keywords": [ "json", "validate" ],
+  "keywords": [ "json", "validate", "liquid", "schema" ],
   "icon": "images/icon.png",
   "galleryBanner": {"color": "#f0f0f0", "theme": "light"},
-  "activationEvents": [
-    "onCommand:jsonvalidate.validate",
-    "onCommand:jsonvalidate.validateWithComments"
-  ],
+  "activationEvents": [ "*" ],
   "main": "./vscode-json-validate.js",
   "browser": "./vscode-json-validate.js",
   "contributes": {
@@ -50,17 +47,56 @@
           "scope": "resource",
           "description": "When expecting a ',' or ':' place cursor after previous character in error message."
         },
-        "jsonvalidate.errorsInProblemPane": {
+        "jsonvalidate.errorsInProblemsPanel": {
           "type": "boolean",
           "default": true,
           "scope": "resource",
-          "description": "Report an error in the PROBLEMS pane (red squiggles)."
+          "description": "Report an error in the PROBLEMS panel (red squiggles)."
         },
         "jsonvalidate.errorsByMessages": {
           "type": "boolean",
           "default": true,
           "scope": "resource",
           "description": "Report an error with a Warning message."
+        },
+        "jsonvalidate.blocks": {
+          "type": "object",
+          "scope": "resource",
+          "description": "Which parts of a file are JSON.",
+          "default": {},
+          "patternProperties": {
+            "^.+$": {
+              "type": "object",
+              "properties": {
+                "flags": {
+                  "type": "string",
+                  "description": "(Optional) string with the regex flags \"i\" and/or \"m\" (default: \"\")"
+                },
+                "beforeStart": {
+                  "type": "string",
+                  "description": "regular expression to search for the block start"
+                },
+                "afterEnd": {
+                  "type": "string",
+                  "description": "regular expression to search for after the block start"
+                },
+                "filterLanguageID": {
+                  "type": "string",
+                  "description": "(Optional) search for blocks in this file if LanguageID matches this regular expression (case insensitive) (default: undefined)"
+                },
+                "filterFilePath": {
+                  "type": "string",
+                  "description": "(Optional) search for blocks in this file if the file path matches this regular expression (case insensitive) (default: undefined)"
+                },
+                "allowComments": {
+                  "type": "boolean",
+                  "default": false,
+                  "description": "(Optional) are comments allowed in this block (default: false)"
+                }
+              },
+              "required": ["beforeStart", "afterEnd"]
+            }
+          }
         }
       }
     }

@@ -14,8 +14,10 @@ const vscode = require('vscode');
 
     NO WARRANTY EXPRESSED OR IMPLIED. USE AT YOUR OWN RISK.
 */
+var getProperty = (obj, prop, deflt) => { return obj.hasOwnProperty(prop) ? obj[prop] : deflt; };
+
 var placeCursorAfterPreviousChar = true;
-var errorsInProblemPane = true;
+var errorsInProblemsPanel = true;
 var errorsByMessages = true;
 
 var json_parse = function () {
@@ -30,6 +32,8 @@ var json_parse = function () {
       atChar = 1, // The current character position in total text
       atLinePrevious,  // The previous non white space/comment character
       atCharPrevious,
+      endLine,    // Character position of the end of the error range
+      endChar,
       allowComments = false,
       insideComment = false,
       escapee = {
@@ -49,7 +53,9 @@ var json_parse = function () {
               name:    'SyntaxError',
               message: m,
               atLine,
-              atChar
+              atChar,
+              endLine,
+              endChar
           };
       },
 
@@ -207,6 +213,7 @@ var json_parse = function () {
 
       object = function () { // Parse an object value.
           var key, object = {};
+          var keyString = { start: [0,0], end: [0,0]};
           if (ch === '{') {
               next('{');
               white();
@@ -215,10 +222,14 @@ var json_parse = function () {
                   return object;   // empty object
               }
               while (ch) {
+                  keyString.start = [atLine, atChar];
                   key = string();
+                  keyString.end = [atLine, atChar];
                   white();
                   next(':');
                   if (_options.strict === true && Object.hasOwnProperty.call(object, key)) {
+                      [atLine, atChar] = keyString.start;
+                      [endLine, endChar] = keyString.end;
                       error('Duplicate key "' + key + '"');
                   }
                   object[key] = value();
@@ -257,6 +268,8 @@ var json_parse = function () {
       ch = ' ';
       atLine = lineOffset;
       atChar = charOffset-1; // we start with a ' ' in ch, first next reads first char
+      endLine = undefined;
+      endChar = undefined;
       allowComments = _allowComments;
       insideComment = false;
       result = value();
@@ -274,6 +287,8 @@ let jsonParse = json_parse(); // no options and no reviver
 /** @type {vscode.DiagnosticCollection} */
 let diagnosticsCollection;
 let diagnostics = [];
+let blockDefs = [];
+let extensionShortName = 'jsonvalidate';
 
 /** @param {string} text @param {vscode.Position} startPosition @param {boolean} allowComments */
 function validateJSONAtLine(text, startPosition, allowComments) {
@@ -282,12 +297,16 @@ function validateJSONAtLine(text, startPosition, allowComments) {
     jsonParse(text, startPosition.line, startPosition.character, allowComments);
   }
   catch (e) {
-    if (errorsInProblemPane) {
-      let pos = new vscode.Position(e.atLine, e.atChar);
+    if (errorsInProblemsPanel) {
+      let posStart = new vscode.Position(e.atLine, e.atChar);
+      let posEnd = posStart;
+      if (e.endLine !== undefined) {
+        posEnd = new vscode.Position(e.endLine, e.endChar);
+      }
       diagnostics.push({
         code: '',
         message: e.message,
-        range: new vscode.Range(pos, pos),
+        range: new vscode.Range(posStart, posEnd),
         severity: vscode.DiagnosticSeverity.Error,
         source: 'JSON Validate',
       });
@@ -306,39 +325,132 @@ function validateJSONAtLine(text, startPosition, allowComments) {
   }
 }
 
+/** @param {vscode.TextDocument} document */
+function updateDiagnosticsCollection(document) {
+  diagnosticsCollection.set(document.uri, diagnostics.length === 0 ? undefined : diagnostics);
+}
+
+/** @param {vscode.Selection[]} selections @param {vscode.TextDocument} document @param {boolean} allowComments */
+function validateSelections(selections, document, allowComments) {
+  for (const selection of selections) {
+    if (selection.isEmpty) { continue; }
+    validateJSONAtLine(document.getText(selection), selection.start, allowComments);
+  }
+}
+
 /** @param {vscode.TextEditor} editor */
 function validateJSON(editor, edit, args, allowComments) {
   if (!editor) { return; }
   diagnostics = [];
-  if (editor.selection.isEmpty) {
-    validateJSONAtLine(editor.document.getText(), new vscode.Position(0,0), allowComments);
+  if (editor.selections.length === 1 && editor.selection.isEmpty) {
+    validateSelections([new vscode.Selection(new vscode.Position(0,0), editor.document.positionAt(editor.document.getText().length))], editor.document, allowComments);
   }
   else {
-    for (const selection of editor.selections) {
-      if (selection.isEmpty) { continue; }
-      validateJSONAtLine(editor.document.getText(selection), selection.start, allowComments);
-    }
+    validateSelections(editor.selections, editor.document, allowComments);
   }
-  diagnosticsCollection.set(editor.document.uri, diagnostics.length === 0 ? undefined : diagnostics);
+  updateDiagnosticsCollection(editor.document);
+}
+
+/** @param {vscode.TextDocument} document */
+function filterDocument(document, block) {
+  const testDocProp = (propId, propGet) => {
+    const prop = getProperty(block, propId);
+    if (!prop) { return true; }
+    return new RegExp(prop, 'i').test(propGet(document));
+  };
+  if (!testDocProp('filterLanguageID', d => d.languageId )) { return false; }
+  if (!testDocProp('filterFilePath', d => d.uri.path)) { return false; }
+  return true;
+}
+
+/** @param {vscode.TextEditor} editor */
+function updateConfiguration(editor) {
+  let config = vscode.workspace.getConfiguration(extensionShortName);
+  placeCursorAfterPreviousChar = config.get('placeCursorAfterPreviousChar');
+  errorsInProblemsPanel = config.get('errorsInProblemsPanel');
+  errorsByMessages = config.get('errorsByMessages');
+  blockDefs = [];
+  if (!editor) { return; }
+  let blocksConfig = {
+    "Liquid schema": {
+      "beforeStart": "\\{%\\s*schema\\s*%\\}",
+      "afterEnd": "\\{%\\s*endschema\\s*%\\}",
+      "filterLanguageID": "liquid"
+    }
+  };
+  let blocks = config.get('blocks');
+  for (const key in blocks) {
+    if (!blocks.hasOwnProperty(key)) { continue; }
+    blocksConfig[key] = blocks[key];
+  }
+  for (const key in blocksConfig) {
+    if (!blocksConfig.hasOwnProperty(key)) { continue; }
+    const block = blocksConfig[key];
+    if (!filterDocument(editor.document, block)) { continue; }
+    const beforeStart = getProperty(block, "beforeStart");
+    const afterEnd = getProperty(block, "afterEnd");
+    if (!(beforeStart && afterEnd)) { continue; }
+    let flags = getProperty(block, "flags", "g");
+    if (flags.indexOf("g") == -1) { flags += "g"; }
+    blockDefs.push({
+      beforeStart: new RegExp(beforeStart, flags),
+      afterEnd: new RegExp(afterEnd, flags),
+      allowComments: getProperty(block, "allowComments", false)
+    });
+  }
+}
+
+/** @param {vscode.TextDocument} document */
+function validateBlocks(document) {
+  var docText = document.getText();
+  diagnostics = [];
+  for (const blockDef of blockDefs) {
+    let selections = [];
+
+    /** @type {RegExp} */
+    let startRegex = blockDef.beforeStart;
+    /** @type {RegExp} */
+    let endRegex = blockDef.afterEnd;
+    startRegex.lastIndex = 0;
+    let resultStart, resultEnd;
+    while ((resultStart=startRegex.exec(docText)) != null) {
+      endRegex.lastIndex = startRegex.lastIndex;
+      if ((resultEnd=endRegex.exec(docText)) == null) { break; }
+      selections.push(new vscode.Selection(document.positionAt(startRegex.lastIndex), document.positionAt(resultEnd.index)));
+      startRegex.lastIndex = endRegex.lastIndex;
+    }
+    validateSelections(selections, document, blockDef.allowComments);
+  }
+  updateDiagnosticsCollection(document);
 }
 
 function activate(context) {
-  let extensionShortName = 'jsonvalidate';
   diagnosticsCollection = vscode.languages.createDiagnosticCollection(extensionShortName);
-  function updateConfiguration() {
-    let config = vscode.workspace.getConfiguration(extensionShortName);
-    placeCursorAfterPreviousChar = config.get('placeCursorAfterPreviousChar');
-    errorsInProblemPane = config.get('errorsInProblemPane');
-    errorsByMessages = config.get('errorsByMessages');
-  }
   context.subscriptions.push(vscode.commands.registerTextEditorCommand('jsonvalidate.validate', validateJSON));
   context.subscriptions.push(vscode.commands.registerTextEditorCommand('jsonvalidate.validateWithComments', (editor, edit, args) => validateJSON(editor, edit, args, true)));
-  context.subscriptions.push(vscode.workspace.onDidChangeConfiguration( async configevent => {
-    if (configevent.affectsConfiguration(extensionShortName)) {
-      updateConfiguration();
+  context.subscriptions.push(vscode.workspace.onDidChangeConfiguration( configEvent => {
+    if (configEvent.affectsConfiguration(extensionShortName)) {
+      updateConfiguration(vscode.window.activeTextEditor);
     }
   }));
-  updateConfiguration();
+  const changeTextEditor = () => {
+    updateConfiguration(vscode.window.activeTextEditor);
+    validateBlocks(vscode.window.activeTextEditor.document);
+  };
+  changeTextEditor();
+  context.subscriptions.push(vscode.workspace.onDidChangeTextDocument( textDocEvent => {
+    if (textDocEvent.contentChanges.length === 0) { return; }
+    validateBlocks(textDocEvent.document);
+  }));
+  context.subscriptions.push(vscode.workspace.onDidCloseTextDocument( document => {
+    if (!document) { return; }
+    diagnostics = [];
+    updateDiagnosticsCollection(document);
+  }));
+  context.subscriptions.push(vscode.window.onDidChangeActiveTextEditor ( editor => {
+    if (!editor) { return; }
+    changeTextEditor();
+  }));
 }
 
 function deactivate() { }
