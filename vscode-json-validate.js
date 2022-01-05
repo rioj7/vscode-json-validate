@@ -330,7 +330,7 @@ function updateDiagnosticsCollection(document) {
   diagnosticsCollection.set(document.uri, diagnostics.length === 0 ? undefined : diagnostics);
 }
 
-/** @param {vscode.Selection[]} selections @param {vscode.TextDocument} document @param {boolean} allowComments */
+/** @param {readonly vscode.Selection[]} selections @param {vscode.TextDocument} document @param {boolean} allowComments */
 function validateSelections(selections, document, allowComments) {
   for (const selection of selections) {
     if (selection.isEmpty) { continue; }
@@ -433,11 +433,12 @@ function activate(context) {
       updateConfiguration(vscode.window.activeTextEditor);
     }
   }));
-  const changeTextEditor = () => {
+  const changeTextEditor = (editor) => {
     updateConfiguration(vscode.window.activeTextEditor);
-    validateBlocks(vscode.window.activeTextEditor.document);
+    if (!editor) { return; }
+    validateBlocks(editor.document);
   };
-  changeTextEditor();
+  changeTextEditor(vscode.window.activeTextEditor);
   context.subscriptions.push(vscode.workspace.onDidChangeTextDocument( textDocEvent => {
     if (textDocEvent.contentChanges.length === 0) { return; }
     validateBlocks(textDocEvent.document);
@@ -448,8 +449,7 @@ function activate(context) {
     updateDiagnosticsCollection(document);
   }));
   context.subscriptions.push(vscode.window.onDidChangeActiveTextEditor ( editor => {
-    if (!editor) { return; }
-    changeTextEditor();
+    changeTextEditor(editor);
   }));
 }
 

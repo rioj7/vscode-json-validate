@@ -15,7 +15,7 @@ The errors shown in the PROBLEMS panel will not be removed when you fix the prob
 # Configuration
 
 * `jsonvalidate.placeCursorAfterPreviousChar` : When the next character expected is a `,` or `:` use the location after the previous non whitespace character. Comments are considered whitespace. (default: `true`)
-* `jsonvalidate.errorsInProblemPane` : Report an error in the PROBLEMS pane (red squiggles). (default: `true`)
+* `jsonvalidate.errorsInProblemsPanel` : Report an error in the PROBLEMS panel (red squiggles). (default: `true`)
 * `jsonvalidate.errorsByMessages` : Report an error with a Warning message. (default: `true`)
 * `jsonvalidate.blocks` : Define [blocks](#blocks) of the file to validate automatically.
 
@@ -51,14 +51,16 @@ If you end the name of a variable with `JSON` you can define a block to validate
     },
     "JavaScript String": {
       "beforeStart": "\\w+JSON\\s*=\\s*`",
-      "afterEnd": `",
+      "afterEnd": "`",
       "filterLanguageID": "javascript"
     }
+  }
 ```
 
 In JavaScript we use the backtick (template strings).
 
 ## Build in definition
+
 The extension has a build in block definition (that can be overridden).
 
 The [Liquid template](https://shopify.github.io/liquid/) definition can contain [schema](https://shopify.dev/themes/architecture/sections/section-schema) information between specific tags.

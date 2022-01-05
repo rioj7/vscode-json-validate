@@ -4,7 +4,7 @@
   "description": "Validate JSON when part of  other files as strings.",
   "publisher": "rioj7",
   "license": "MIT",
-  "version": "1.4.0",
+  "version": "1.4.3",
   "engines": {"vscode": "^1.50.0"},
   "categories": ["Other"],
   "keywords": [ "json", "validate", "liquid", "schema" ],
