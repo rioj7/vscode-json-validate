@@ -74,22 +74,3 @@ The [Liquid template](https://shopify.github.io/liquid/) definition can contain 
 ```
 
 You change this definition by using a name with the same key: `"Liquid schema"`
-
-## Release Notes
-
-### 1.4.0
-* `jsonvalidate.blocks` validate automatically parts of the file
-* `jsonvalidate.errorsInProblemPane` rename to `jsonvalidate.errorsInProblemsPanel`
-
-### 1.3.0
-* `jsonvalidate.errorsInProblemPane`
-* `jsonvalidate.errorsByMessages`
-
-### 1.2.0
-* Place cursor after previous character for , and : - Can be changed by setting.
-
-### 1.1.0
-* validate JSON with Comments
-* show character position in error message and move cursor there
-
-### 1.0.0 Initial release
