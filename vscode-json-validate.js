@@ -369,6 +369,8 @@ function updateConfiguration(editor) {
   placeCursorAfterPreviousChar = config.get('placeCursorAfterPreviousChar');
   errorsInProblemsPanel = config.get('errorsInProblemsPanel');
   errorsByMessages = config.get('errorsByMessages');
+  vscode.commands.executeCommand('setContext', 'jsonvalidate:validate', config.get('showValidateJsonInContextMenu'));
+  vscode.commands.executeCommand('setContext', 'jsonvalidate:validateWithComments', config.get('showValidateJsonWithCommentsInContextMenu'));
   blockDefs = [];
   if (!editor) { return; }
   let blocksConfig = {

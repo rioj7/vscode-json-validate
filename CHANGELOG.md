@@ -1,5 +1,10 @@
 # Change Log
 
+## [1.4.4] 2024-01-06
+### Added
+- settings to show/hide commands in editor context menu
+- add `CHANGELOG.md`
+
 ## [1.4.3] 2022-01-05
 ### Modified
 - startup in empty workspace

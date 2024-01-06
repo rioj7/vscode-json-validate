@@ -4,7 +4,7 @@
   "description": "Validate JSON when part of  other files as strings.",
   "publisher": "rioj7",
   "license": "MIT",
-  "version": "1.4.3",
+  "version": "1.4.4",
   "engines": {"vscode": "^1.50.0"},
   "categories": ["Other"],
   "keywords": [ "json", "validate", "liquid", "schema" ],
@@ -29,10 +29,12 @@
     "menus": {
       "editor/context": [
         {
+          "when": "jsonvalidate:validate",
           "command": "jsonvalidate.validate",
           "group": "json"
         },
         {
+          "when": "jsonvalidate:validateWithComments",
           "command": "jsonvalidate.validateWithComments",
           "group": "json"
         }
@@ -58,6 +60,18 @@
           "default": true,
           "scope": "resource",
           "description": "Report an error with a Warning message."
+        },
+        "jsonvalidate.showValidateJsonInContextMenu": {
+          "type": "boolean",
+          "default": true,
+          "scope": "resource",
+          "description": "Show \"Validate JSON\" in editor context menu."
+        },
+        "jsonvalidate.showValidateJsonWithCommentsInContextMenu": {
+          "type": "boolean",
+          "default": true,
+          "scope": "resource",
+          "description": "Show \"Validate JSON with Comments\" in editor context menu."
         },
         "jsonvalidate.blocks": {
           "type": "object",

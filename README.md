@@ -18,6 +18,8 @@ The errors shown in the PROBLEMS panel will not be removed when you fix the prob
 * `jsonvalidate.errorsInProblemsPanel` : Report an error in the PROBLEMS panel (red squiggles). (default: `true`)
 * `jsonvalidate.errorsByMessages` : Report an error with a Warning message. (default: `true`)
 * `jsonvalidate.blocks` : Define [blocks](#blocks) of the file to validate automatically.
+* `jsonvalidate.showValidateJsonInContextMenu` : Show "Validate JSON" in editor context menu. (default: `true`)
+* `jsonvalidate.showValidateJsonWithCommentsInContextMenu` : Show "Validate JSON with Comments" in editor context menu. (default: `true`)
 
 # Blocks
 
