@@ -1,5 +1,9 @@
 # Change Log
 
+## [1.5.0] 2024-03-03
+### Added
+- support for `JSON Lines`
+
 ## [1.4.4] 2024-01-06
 ### Added
 - settings to show/hide commands in editor context menu

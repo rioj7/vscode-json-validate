@@ -1,9 +1,14 @@
-Validate part(s) of a file that should be valid JSON text. For JSON text that is allowed to have comments (`//`) there is a different validate command.
+Validate part(s) of a file that should be valid JSON text.  
+For JSON text that is allowed to have comments (`//`) there is a different validate command.  
+The JSON Lines format decribes a single JSON object (`{}`) on each line.
 
 When you have in your source code a string that is a JSON object after parsing. With this extension you can validate if the text is able to parse to a JSON object.
 
 1. Select part of the file (can be multiple parts with Multi Cursor).
-1. Select from the Command Palette or the editor context menu: **Validate JSON** or **Validate JSON with Comments**
+1. Select from the Command Palette or the editor context menu:
+    * **Validate JSON**
+    * **Validate JSON with Comments**
+    * **Validate JSON Lines**
 1. Each selection is parsed and if an error is found you get a warning message with the possibility to go to the line with the error.
 
 Only the **first error** in each selection is shown. Repeat the check until you don't get any error.
@@ -20,6 +25,7 @@ The errors shown in the PROBLEMS panel will not be removed when you fix the prob
 * `jsonvalidate.blocks` : Define [blocks](#blocks) of the file to validate automatically.
 * `jsonvalidate.showValidateJsonInContextMenu` : Show "Validate JSON" in editor context menu. (default: `true`)
 * `jsonvalidate.showValidateJsonWithCommentsInContextMenu` : Show "Validate JSON with Comments" in editor context menu. (default: `true`)
+* `jsonvalidate.showValidateJsonLinesInContextMenu` : Show "Validate JSON Lines" in editor context menu. (default: `true`)
 
 # Blocks
 
@@ -29,12 +35,18 @@ The definition of a block is done in the configuration variable `jsonvalidate.bl
 
 * the key for the block can have any name, it can be used to override a definition.
 * the properties for each block are
-    * `flags`: a string with the regex flags "i" and/or "m" (default: "")
+    * `flags`: a string with the regex flags `"i"` and/or `"m"` (default: `""`)
     * `beforeStart`: regular expression to search for the block start
     * `afterEnd`: regular expression to search for after the block start
-    * `filterLanguageID`: (Optional) search for blocks in this file if LanguageID matches this regular expression (case insensitive) (default: undefined)
-    * `filterFilePath`: (Optional) search for blocks in this file if the file path matches this regular expression (case insensitive) (default: undefined)
-    * `allowComments`: (Optional) are comments allowed in this block (default: `false`)
+    * `filterLanguageID`: (Optional) search for blocks in this file if LanguageID matches this regular expression (case insensitive) (default: `undefined`)
+    * `filterFilePath`: (Optional) search for blocks in this file if the file path matches this regular expression (case insensitive) (default: `undefined`)
+    * `format`: (Optional) the format of the block (default: `"json"`)  
+      Possible values are:
+      * `"json"` : standard JSON
+      * `"jsonc"` : JSON with Comments
+      * `"jsonl"` : JSON Lines
+    * `allowComments`: (Optional) are comments allowed in this block (default: `false`)  
+      If `format` property is defined this is ignored.
 
 If a `filter` property is not defined it will pass all files.
 

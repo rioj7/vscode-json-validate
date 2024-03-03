@@ -289,6 +289,9 @@ let diagnosticsCollection;
 let diagnostics = [];
 let blockDefs = [];
 let extensionShortName = 'jsonvalidate';
+const FORMAT_JSON = "json";
+const FORMAT_JSON_COMMENTS = "jsonc";
+const FORMAT_JSON_LINES = "jsonl";
 
 /** @param {string} text @param {vscode.Position} startPosition @param {boolean} allowComments */
 function validateJSONAtLine(text, startPosition, allowComments) {
@@ -330,23 +333,37 @@ function updateDiagnosticsCollection(document) {
   diagnosticsCollection.set(document.uri, diagnostics.length === 0 ? undefined : diagnostics);
 }
 
-/** @param {readonly vscode.Selection[]} selections @param {vscode.TextDocument} document @param {boolean} allowComments */
-function validateSelections(selections, document, allowComments) {
+/** @param {readonly vscode.Selection[]} selections @param {vscode.TextDocument} document @param {string} format */
+function validateSelections(selections, document, format) {
+  const allowComments = format === FORMAT_JSON_COMMENTS;
+  const whiteSpaceRegex = new RegExp(/^\s*$/);
   for (const selection of selections) {
     if (selection.isEmpty) { continue; }
-    validateJSONAtLine(document.getText(selection), selection.start, allowComments);
+    if (format !== FORMAT_JSON_LINES) {
+      validateJSONAtLine(document.getText(selection), selection.start, allowComments);
+    } else {
+      for (let line = selection.start.line; line <= selection.end.line; ++line) {
+        let startChar = (line === selection.start.line) ? selection.start.character : 0;
+        let endChar = (line === selection.end.line) ? selection.end.character : document.lineAt(line).text.length;
+        let lineSelection = new vscode.Selection(line, startChar, line, endChar);
+        let lineText = document.getText(lineSelection);
+        if (whiteSpaceRegex.test(lineText)) { continue; }
+        validateJSONAtLine(lineText, lineSelection.start, allowComments);
+      }
+    }
   }
 }
 
 /** @param {vscode.TextEditor} editor */
-function validateJSON(editor, edit, args, allowComments) {
+function validateJSON(editor, edit, args, format) {
   if (!editor) { return; }
+  if (format === undefined) { format = FORMAT_JSON; }
   diagnostics = [];
   if (editor.selections.length === 1 && editor.selection.isEmpty) {
-    validateSelections([new vscode.Selection(new vscode.Position(0,0), editor.document.positionAt(editor.document.getText().length))], editor.document, allowComments);
+    validateSelections([new vscode.Selection(new vscode.Position(0,0), editor.document.positionAt(editor.document.getText().length))], editor.document, format);
   }
   else {
-    validateSelections(editor.selections, editor.document, allowComments);
+    validateSelections(editor.selections, editor.document, format);
   }
   updateDiagnosticsCollection(editor.document);
 }
@@ -371,6 +388,7 @@ function updateConfiguration(editor) {
   errorsByMessages = config.get('errorsByMessages');
   vscode.commands.executeCommand('setContext', 'jsonvalidate:validate', config.get('showValidateJsonInContextMenu'));
   vscode.commands.executeCommand('setContext', 'jsonvalidate:validateWithComments', config.get('showValidateJsonWithCommentsInContextMenu'));
+  vscode.commands.executeCommand('setContext', 'jsonvalidate:validateLines', config.get('showValidateJsonLinesInContextMenu'));
   blockDefs = [];
   if (!editor) { return; }
   let blocksConfig = {
@@ -394,10 +412,14 @@ function updateConfiguration(editor) {
     if (!(beforeStart && afterEnd)) { continue; }
     let flags = getProperty(block, "flags", "g");
     if (flags.indexOf("g") == -1) { flags += "g"; }
+    let format = getProperty(block, "format");
+    if (!format) {
+      format = getProperty(block, "allowComments", false) ? FORMAT_JSON_COMMENTS : FORMAT_JSON;
+    }
     blockDefs.push({
       beforeStart: new RegExp(beforeStart, flags),
       afterEnd: new RegExp(afterEnd, flags),
-      allowComments: getProperty(block, "allowComments", false)
+      format
     });
   }
 }
@@ -421,7 +443,7 @@ function validateBlocks(document) {
       selections.push(new vscode.Selection(document.positionAt(startRegex.lastIndex), document.positionAt(resultEnd.index)));
       startRegex.lastIndex = endRegex.lastIndex;
     }
-    validateSelections(selections, document, blockDef.allowComments);
+    validateSelections(selections, document, blockDef.format);
   }
   updateDiagnosticsCollection(document);
 }
@@ -429,7 +451,8 @@ function validateBlocks(document) {
 function activate(context) {
   diagnosticsCollection = vscode.languages.createDiagnosticCollection(extensionShortName);
   context.subscriptions.push(vscode.commands.registerTextEditorCommand('jsonvalidate.validate', validateJSON));
-  context.subscriptions.push(vscode.commands.registerTextEditorCommand('jsonvalidate.validateWithComments', (editor, edit, args) => validateJSON(editor, edit, args, true)));
+  context.subscriptions.push(vscode.commands.registerTextEditorCommand('jsonvalidate.validateWithComments', (editor, edit, args) => validateJSON(editor, edit, args, FORMAT_JSON_COMMENTS)));
+  context.subscriptions.push(vscode.commands.registerTextEditorCommand('jsonvalidate.validateLines', (editor, edit, args) => validateJSON(editor, edit, args, FORMAT_JSON_LINES)));
   context.subscriptions.push(vscode.workspace.onDidChangeConfiguration( configEvent => {
     if (configEvent.affectsConfiguration(extensionShortName)) {
       updateConfiguration(vscode.window.activeTextEditor);

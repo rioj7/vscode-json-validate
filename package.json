@@ -4,7 +4,7 @@
   "description": "Validate JSON when part of  other files as strings.",
   "publisher": "rioj7",
   "license": "MIT",
-  "version": "1.4.4",
+  "version": "1.5.0",
   "engines": {"vscode": "^1.50.0"},
   "categories": ["Other"],
   "keywords": [ "json", "validate", "liquid", "schema" ],
@@ -24,6 +24,11 @@
         "command": "jsonvalidate.validateWithComments",
         "title": "Validate JSON with Comments",
         "category": "JSON"
+      },
+      {
+        "command": "jsonvalidate.validateLines",
+        "title": "Validate JSON Lines",
+        "category": "JSON"
       }
     ],
     "menus": {
@@ -36,6 +41,11 @@
         {
           "when": "jsonvalidate:validateWithComments",
           "command": "jsonvalidate.validateWithComments",
+          "group": "json"
+        },
+        {
+          "when": "jsonvalidate:validateLines",
+          "command": "jsonvalidate.validateLines",
           "group": "json"
         }
       ]
@@ -73,6 +83,12 @@
           "scope": "resource",
           "description": "Show \"Validate JSON with Comments\" in editor context menu."
         },
+        "jsonvalidate.showValidateJsonLinesInContextMenu": {
+          "type": "boolean",
+          "default": true,
+          "scope": "resource",
+          "description": "Show \"Validate JSON Lines\" in editor context menu."
+        },
         "jsonvalidate.blocks": {
           "type": "object",
           "scope": "resource",
@@ -102,10 +118,15 @@
                   "type": "string",
                   "description": "(Optional) search for blocks in this file if the file path matches this regular expression (case insensitive) (default: undefined)"
                 },
+                "format": {
+                  "type": "string",
+                  "description": "(Optional) the format of the block. (default: \"json\")",
+                  "enum": ["json", "jsonc", "jsonl"]
+                },
                 "allowComments": {
                   "type": "boolean",
                   "default": false,
-                  "description": "(Optional) are comments allowed in this block (default: false)"
+                  "description": "(Optional) are comments allowed in this block, ignored if \"format\" defined (default: false)"
                 }
               },
               "required": ["beforeStart", "afterEnd"]
